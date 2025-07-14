@@ -10,14 +10,14 @@ import sys
 ####inputs here
 UUID = "__replace_with_VM_resource_id__" 
 API_BASE = "https://__Aria_automation_FQDN___/api"
-API_URL = f"{API_BASE}/{UUID}"
 
-BEARER_TOKEN = "your_token_here"  
+
+BEARER_TOKEN = "___your_token_here__"  
 ENDPOINT_LINK = "/resources/endpoints/___________replace_endpoint_id_here___________"
 ENDPOINT_TYPE = "vsphere"
 
 ###DO NOT MODIFY BELOW
-
+API_URL = f"{API_BASE}/{UUID}"
 OUTPUT_FILE = f"{UUID}-original.txt"
 
 
