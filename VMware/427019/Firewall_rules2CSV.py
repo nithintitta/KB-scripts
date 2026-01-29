@@ -11,12 +11,15 @@ import json
 import csv
 import urllib3
 
+# Suppress SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# --- CONFIGURATION ---
 VCD_HOST = "vcd10-6-1.rainpole.local"
 API_VERSION = "40.0.0-alpha"
 
-HARDCODED_TOKEN = "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJhOTNjOWRiOS03NDcxLTMxOTItOGQwOS1hOGY3ZWVkYTg1ZjlAM2UxMGRjNzktM2M1NC00ZjNlLTkyMDEtNDY5NjM5NjhiYmZiIiwic3ViIjoiYWRtaW5pc3RyYXRvciIsImV4cCI6MTc2OTY3MTMyOCwidmVyc2lvbiI6InZjbG91ZF8xLjAiLCJqdGkiOiJkNzE5NzI3NGQ3NTE0MmNiOGRkYmE0YjViZjIwYWRjYyJ9.Cm4sXS6l8znpd-RKqEpGSytAjeFXE4mwXNo8XRH3CcXrvi_pN0uR4zXW4RANF9iwHHANgMpRQd54h0kTosXosmv0N6B90OnxqtMXE1GjqPxGRopRcy64qWKVWOA4XrXMnTHOLRcwGWhSa219dAoETCymurdmVdvF6Y7egFUWD7nMU0ZYODxgk8r3ygvZ11kuNHd6ZkdViwePWzjgzx_glsT80ihWc4FgICTRxn6wSXhkDhx3Dj_2CPIqhkvaud-mThyhAlFefpJALa8WwoYe6XuYoeUp2RzPdGAT-1lXxFgXCZac7CCUBuO7ujrlJ_FGBLIG_MnR_v5fZnY_8PqiIQ"
+# PASTE TOKEN BELOW (Between the quotes)
+BEARER_TOKEN = "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJhOTNjOWRiOS03NDcxLTMxOTItOGQwOS1hOGY3ZWVkYTg1ZjlAM2UxMGRjNzktM2M1NC00ZjNlLTkyMDEtNDY5NjM5NjhiYmZiIiwic3ViIjoiYWRtaW5pc3RyYXRvciIsImV4cCI6MTc2OTY3MTMyOCwidmVyc2lvbiI6InZjbG91ZF8xLjAiLCJqdGkiOiJkNzE5NzI3NGQ3NTE0MmNiOGRkYmE0YjViZjIwYWRjYyJ9.Cm4sXS6l8znpd-RKqEpGSytAjeFXE4mwXNo8XRH3CcXrvi_pN0uR4zXW4RANF9iwHHANgMpRQd54h0kTosXosmv0N6B90OnxqtMXE1GjqPxGRopRcy64qWKVWOA4XrXMnTHOLRcwGWhSa219dAoETCymurdmVdvF6Y7egFUWD7nMU0ZYODxgk8r3ygvZ11kuNHd6ZkdViwePWzjgzx_glsT80ihWc4FgICTRxn6wSXhkDhx3Dj_2CPIqhkvaud-mThyhAlFefpJALa8WwoYe6XuYoeUp2RzPdGAT-1lXxFgXCZac7CCUBuO7ujrlJ_FGBLIG_MnR_v5fZnY_8PqiIQ"
 
 gateway_uuid = input("Enter Gateway UUID: ").strip()
 
@@ -44,36 +47,30 @@ def get_firewall_rules(uuid, token):
         return None
 
 def format_cell_data(key, value):
-    if value is None:
-        return ""
-        
+    if value is None: return ""
+    
     if key == "applicationPortProfiles" and isinstance(value, list):
         names = [item.get('name', 'Unknown') for item in value if isinstance(item, dict)]
         return " | ".join(names)
 
-    if isinstance(value, list):
-        return " | ".join([str(v) for v in value])
-        
-    if isinstance(value, dict):
-        return json.dumps(value)
-        
+    if isinstance(value, list): return " | ".join([str(v) for v in value])
+    
+    if isinstance(value, dict): return json.dumps(value)
+    
     return value
 
-def save_csv(json_data, filename="firewall_rules.csv"):
+def save_csv(json_data, filename):
     all_rules = []
 
-    sys_rules = json_data.get('systemRules') or []
-    for r in sys_rules:
+    for r in json_data.get('systemRules') or []:
         r['Rule_Type'] = 'System'
         all_rules.append(r)
 
-    user_rules = json_data.get('userDefinedRules') or []
-    for r in user_rules:
+    for r in json_data.get('userDefinedRules') or []:
         r['Rule_Type'] = 'User Defined'
         all_rules.append(r)
 
-    def_rules = json_data.get('defaultRules') or []
-    for r in def_rules:
+    for r in json_data.get('defaultRules') or []:
         r['Rule_Type'] = 'Default'
         all_rules.append(r)
     
@@ -96,15 +93,14 @@ def save_csv(json_data, filename="firewall_rules.csv"):
                 row = []
                 for header in headers:
                     val = rule.get(header, "")
-                    formatted_val = format_cell_data(header, val)
-                    row.append(formatted_val)
+                    row.append(format_cell_data(header, val))
                 writer.writerow(row)
                 
         print(f"[+] CSV saved to file: {filename} ({len(all_rules)} rules total)")
     except IOError as e:
         print(f"[-] Error writing CSV file: {e}")
 
-def save_json(json_data, filename="firewall_rules.json"):
+def save_json(json_data, filename):
     try:
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(json_data, f, indent=4)
@@ -115,15 +111,19 @@ def save_json(json_data, filename="firewall_rules.json"):
 if __name__ == "__main__":
     if not gateway_uuid:
         print("[-] Error: Gateway UUID cannot be empty.")
-    elif not HARDCODED_TOKEN:
-        print("[-] Error: Token is missing.")
+    elif "PASTE_" in BEARER_TOKEN:
+        print("[-] Error: Please update the BEARER_TOKEN variable.")
     else:
-        data = get_firewall_rules(gateway_uuid, HARDCODED_TOKEN)
+        data = get_firewall_rules(gateway_uuid, BEARER_TOKEN)
         
         if data:
             print("\n--- JSON OUTPUT START ---")
             print(json.dumps(data, indent=4))
             print("--- JSON OUTPUT END ---\n")
             
-            save_json(data)
-            save_csv(data)
+            # Dynamic Filenames based on UUID
+            json_filename = f"{gateway_uuid}.json"
+            csv_filename = f"{gateway_uuid}.csv"
+            
+            save_json(data, json_filename)
+            save_csv(data, csv_filename)
